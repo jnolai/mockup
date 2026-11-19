@@ -420,36 +420,47 @@
       accountInput: '',
       inputError: false,
       paymentMethod: 'qr',
+      paymentStepTimer: null,
       receiptData: null,
       printState: 'idle',
       inactivitySeconds: 120
     };
 
+    function clearPaymentStepTimer() {
+      if (state.paymentStepTimer) {
+        clearTimeout(state.paymentStepTimer);
+        state.paymentStepTimer = null;
+      }
+    }
+
     /* ==========================================================================
-       3. NAVIGATION & INTERACTION HANDLERS
+       3. NAVIGATION & LAYOUT HANDLERS
        ========================================================================== */
     function setLayoutMode(mode) {
       resetInactivity();
       state.layout = mode === 'landscape' ? 'landscape' : 'portrait';
-      const isLand = state.layout === 'landscape';
 
-      document.body.classList.toggle('layout-landscape', isLand);
-
-      const subtitle = document.getElementById('orientation-subtitle');
-      if (subtitle) {
-        subtitle.textContent = isLand
-          ? 'Kiosk Layan Diri • Landscape 21"'
-          : 'Kiosk Layan Diri • Portrait 21"';
-      }
-
+      const body = document.body;
       const btnP = document.getElementById('btn-layout-portrait');
       const btnL = document.getElementById('btn-layout-landscape');
-      if (btnP && btnL) {
-        if (isLand) {
+      const subEl = document.getElementById('orientation-subtitle');
+
+      if (state.layout === 'landscape') {
+        body.classList.add('layout-landscape');
+        if (subEl) subEl.textContent = 'Kiosk Layan Diri • Landscape 21"';
+        if (btnL) {
           btnL.className = 'kiosk-btn h-9 px-3 rounded-full bg-[#C699A5] text-white text-xs font-extrabold flex items-center gap-1.5 shadow-2xs';
+        }
+        if (btnP) {
           btnP.className = 'kiosk-btn h-9 px-3 rounded-full text-[#46323B] hover:bg-white/60 text-xs font-extrabold flex items-center gap-1.5';
-        } else {
+        }
+      } else {
+        body.classList.remove('layout-landscape');
+        if (subEl) subEl.textContent = 'Kiosk Layan Diri • Portrait 21"';
+        if (btnP) {
           btnP.className = 'kiosk-btn h-9 px-3 rounded-full bg-[#C699A5] text-white text-xs font-extrabold flex items-center gap-1.5 shadow-2xs';
+        }
+        if (btnL) {
           btnL.className = 'kiosk-btn h-9 px-3 rounded-full text-[#46323B] hover:bg-white/60 text-xs font-extrabold flex items-center gap-1.5';
         }
       }
@@ -469,21 +480,9 @@
       if (el) el.textContent = `${m}:${s}`;
     }
 
-    function handleSearch(val) {
-      resetInactivity();
-      state.searchQuery = val;
-      const clearBtn = document.getElementById('header-search-clear');
-      if (clearBtn) clearBtn.classList.toggle('hidden', !val);
-      renderHomeCategoriesGrid();
-    }
-
     function clearSearch() {
       resetInactivity();
       state.searchQuery = '';
-      const inputEl = document.getElementById('kiosk-search-input');
-      if (inputEl) inputEl.value = '';
-      const clearBtn = document.getElementById('header-search-clear');
-      if (clearBtn) clearBtn.classList.add('hidden');
       renderHomeCategoriesGrid();
     }
 
@@ -526,6 +525,7 @@
 
     function goHome() {
       resetInactivity();
+      clearPaymentStepTimer();
       state.screen = 'HOME';
       state.selectedCategory = null;
       state.selectedService = null;
@@ -537,6 +537,7 @@
 
     function goBack() {
       resetInactivity();
+      clearPaymentStepTimer();
       if (state.screen === 'SEWAAN_SUB') {
         goHome();
       } else if (state.screen === 'LOOKUP') {
@@ -549,14 +550,14 @@
       } else if (state.screen === 'BILL_SUMMARY') {
         state.screen = 'LOOKUP';
         renderScreen();
+      } else if (state.screen === 'PAYMENT_STEP') {
+        state.screen = 'BILL_SUMMARY';
+        renderScreen();
       } else if (state.screen === 'RECEIPT') {
         goHome();
       }
     }
 
-    /* ==========================================================================
-       4. TOUCH KEYPAD & PAYMENT FLOW ACTIONS
-       ========================================================================== */
     function pressKey(char) {
       resetInactivity();
       state.inputError = false;
@@ -620,33 +621,40 @@
       renderScreen();
     }
 
+    function finalizeTransaction() {
+      clearPaymentStepTimer();
+      const now = new Date();
+      const refNo = 'EZP-' + now.getFullYear() + '-' + Math.floor(100000 + Math.random() * 900000);
+      state.receiptData = {
+        receiptNo: refNo,
+        timestamp: now.toLocaleString('ms-MY', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        serviceName: state.selectedService.displayTitle,
+        accountNo: state.accountInput.toUpperCase(),
+        owner: state.selectedService.sampleOwner,
+        amount: state.selectedService.sampleAmount.toFixed(2),
+        method: state.paymentMethod
+      };
+      state.printState = 'idle';
+      state.screen = 'RECEIPT';
+      renderScreen();
+    }
+
     function confirmPayment() {
       resetInactivity();
-      state.screen = 'PROCESSING';
+      clearPaymentStepTimer();
+      state.screen = 'PAYMENT_STEP';
       renderScreen();
 
-      setTimeout(() => {
-        const now = new Date();
-        const refNo = 'EZP-' + now.getFullYear() + '-' + Math.floor(100000 + Math.random() * 900000);
-        state.receiptData = {
-          receiptNo: refNo,
-          timestamp: now.toLocaleString('ms-MY', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          }),
-          serviceName: state.selectedService.displayTitle,
-          accountNo: state.accountInput.toUpperCase(),
-          owner: state.selectedService.sampleOwner,
-          amount: state.selectedService.sampleAmount.toFixed(2),
-          method: state.paymentMethod
-        };
-        state.printState = 'idle';
-        state.screen = 'RECEIPT';
-        renderScreen();
-      }, 1200);
+      // Auto-advance to receipt after simulated gateway confirmation
+      state.paymentStepTimer = setTimeout(() => {
+        finalizeTransaction();
+      }, 3800);
     }
 
     function triggerPrintReceipt() {
@@ -666,7 +674,7 @@
        ========================================================================== */
     function renderScreen() {
       const backBtn = document.getElementById('header-back-btn');
-      if (state.screen === 'HOME' || state.screen === 'PROCESSING') {
+      if (state.screen === 'HOME') {
         backBtn.classList.add('hidden');
       } else {
         backBtn.classList.remove('hidden');
@@ -683,8 +691,8 @@
         main.innerHTML = renderLookupScreen();
       } else if (state.screen === 'BILL_SUMMARY') {
         main.innerHTML = renderBillSummaryScreen();
-      } else if (state.screen === 'PROCESSING') {
-        main.innerHTML = renderProcessingScreen();
+      } else if (state.screen === 'PAYMENT_STEP') {
+        main.innerHTML = renderPaymentStepScreen();
       } else if (state.screen === 'RECEIPT') {
         main.innerHTML = renderReceiptScreen();
       }
@@ -1165,7 +1173,7 @@
               return `
                 <button
                   onclick="pressKey('${k}')"
-                  class="kiosk-btn rounded-2xl bg-white hover:bg-calmBlue-50 active:bg-calmBlue-500 active:text-white border-2 border-calmBlue-100 font-display font-extrabold text-2xl sm:text-3xl text-kioskNavy shadow-2xs"
+                  class="kiosk-btn rounded-2xl bg-white hover:bg-calmBlue-50 active:bg-calmBlue-500 active:text-white border-2 border-calmBlue-100 font-display font-extrabold text-xl sm:text-2xl text-kioskNavy shadow-2xs"
                 >
                   ${k}
                 </button>
@@ -1186,81 +1194,79 @@
       `;
     }
 
-    /* --- SCREEN 3: BILL SUMMARY & PAYMENT METHOD (PORTRAIT & LANDSCAPE) --- */
+    /* --- SCREEN 3: BILL SUMMARY & PAYMENT METHOD --- */
     function renderBillSummaryScreen() {
       const srv = state.selectedService;
       const isLand = state.layout === 'landscape';
       const methods = [
-        { id: 'qr', title: 'DuitNow QR', sub: 'Imbas kod QR perbankan internet / e-dompet', icon: 'qr-code' },
-        { id: 'card', title: 'Kad Debit / Kredit', sub: 'PayWave / MyDebit / Visa / Mastercard', icon: 'credit-card' },
-        { id: 'wallet', title: 'e-Wallet', sub: 'Touch \'n Go eWallet, GrabPay, Boost', icon: 'smartphone' }
+        { id: 'qr', title: '1. DuitNow QR', sub: 'Imbas kod QR perbankan', icon: 'qr-code' },
+        { id: 'card', title: '2. Kad Debit / Kredit', sub: 'PayWave / MyDebit / Visa', icon: 'credit-card' },
+        { id: 'wallet', title: '3. e-Wallet', sub: 'TnG eWallet, GrabPay, Boost', icon: 'smartphone' }
       ];
 
       return `
         <div class="animate-screen flex-1 h-full ${isLand ? 'grid grid-cols-12 gap-6 items-stretch' : 'flex flex-col justify-between gap-4'} overflow-hidden">
-          <div class="${isLand ? 'col-span-6' : 'shrink-0'} rounded-3xl bg-white border-2 border-calmBlue-100 p-5 sm:p-6 shadow-sm flex flex-col justify-between gap-4">
-            <div class="flex items-center justify-between pb-3 border-b border-calmBlue-100">
-              <span class="px-3.5 py-1 rounded-full bg-calmBlue-50 text-calmBlue-700 font-extrabold text-xs">
+          <!-- Bill Statement Box -->
+          <div class="${isLand ? 'col-span-6' : ''} rounded-3xl bg-white border border-calmBlue-100 p-5 sm:p-6 shadow-sm flex flex-col justify-between gap-3">
+            <div class="flex items-center justify-between pb-3 border-b border-calmBlue-50">
+              <span class="px-3 py-1 rounded-full bg-calmBlue-50 text-calmBlue-600 font-extrabold text-xs">
                 ${srv.displayTitle}
               </span>
               <span class="px-3 py-1 rounded-full bg-calmRed-50 text-calmRed-600 text-xs font-extrabold">
-                Status: Perlu Dibayar
+                Perlu Dibayar
               </span>
             </div>
 
-            <div class="grid grid-cols-2 gap-3.5 text-sm">
-              <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/50">
-                <span class="text-[11px] text-slate-500 font-bold uppercase block">No. Akaun / Rujukan</span>
-                <span class="font-mono font-extrabold text-base text-kioskNavy mt-0.5 block">${state.accountInput.toUpperCase()}</span>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span class="text-xs text-slate-400 font-bold uppercase block">No. Akaun</span>
+                <span class="font-mono font-extrabold text-kioskNavy text-base">${state.accountInput.toUpperCase()}</span>
               </div>
-              <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/50">
-                <span class="text-[11px] text-slate-500 font-bold uppercase block">Tarikh Akhir Bayaran</span>
-                <span class="font-extrabold text-base text-slate-800 mt-0.5 block">30 Nov 2026</span>
+              <div>
+                <span class="text-xs text-slate-400 font-bold uppercase block">Tarikh Akhir</span>
+                <span class="font-bold text-slate-700 text-base">30 Nov 2026</span>
               </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <div>
-                <span class="text-[11px] text-slate-400 font-bold uppercase block">Nama Pemilik / Pembayar</span>
-                <span class="font-extrabold text-base text-kioskNavy">${srv.sampleOwner}</span>
-              </div>
-              <div>
-                <span class="text-[11px] text-slate-400 font-bold uppercase block">Keterangan Bil</span>
-                <span class="text-slate-600 font-medium">${srv.sampleDetail}</span>
-              </div>
+            <div class="text-sm">
+              <span class="text-xs text-slate-400 font-bold uppercase block">Nama Pemilik / Pembayar</span>
+              <span class="font-extrabold text-kioskNavy">${srv.sampleOwner}</span>
             </div>
 
-            <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-kioskNavy to-calmBlue-700 text-white flex items-center justify-between">
-              <div>
-                <span class="text-xs font-bold uppercase tracking-wider text-calmBlue-200 block">Jumlah Perlu Dibayar</span>
-                <span class="text-xs text-calmBlue-100">Termasuk caj perkhidmatan</span>
-              </div>
-              <span class="font-display font-extrabold text-3xl sm:text-4xl text-white">
+            <div class="text-sm">
+              <span class="text-xs text-slate-400 font-bold uppercase block">Keterangan</span>
+              <span class="text-slate-600 font-medium">${srv.sampleDetail}</span>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-gradient-to-r from-kioskNavy to-calmBlue-700 text-white flex items-center justify-between">
+              <span class="text-sm font-bold text-calmBlue-100">Jumlah Bayaran</span>
+              <span class="font-display font-extrabold text-2xl sm:text-3xl text-white">
                 RM ${srv.sampleAmount.toFixed(2)}
               </span>
             </div>
           </div>
 
-          <div class="${isLand ? 'col-span-6' : 'flex-1'} flex flex-col justify-between gap-3 bg-[#F0E4ED]/35 rounded-3xl p-5 border border-[#EFCFE3] overflow-hidden">
-            <h3 class="font-display font-extrabold text-base sm:text-lg text-kioskNavy shrink-0">Pilih Kaedah Bayaran Tanpa Tunai:</h3>
-            <div class="flex-1 flex flex-col justify-between gap-2.5">
+          <!-- Cashless Payment Options & Pay CTA -->
+          <div class="${isLand ? 'col-span-6' : 'flex-1'} flex flex-col justify-between gap-3 bg-[#F0E4ED]/35 rounded-3xl p-5 border border-[#EFCFE3]">
+            <div class="space-y-2.5">
+              <p class="text-sm font-extrabold text-kioskNavy">Pilihan Kaedah Bayaran Tanpa Tunai:</p>
               ${methods.map(m => {
                 const active = state.paymentMethod === m.id;
                 return `
                   <button
                     onclick="selectPaymentMethod('${m.id}')"
-                    class="kiosk-btn flex-1 px-4 py-3 rounded-2xl border-2 flex items-center justify-between text-left ${
-                      active ? 'border-calmBlue-500 bg-white shadow-xs' : 'border-calmBlue-100 bg-white/70'
+                    class="kiosk-btn w-full p-4 rounded-2xl border-2 flex items-center justify-between text-left ${
+                      active ? 'border-calmBlue-500 bg-calmBlue-50' : 'border-calmBlue-100 bg-white'
                     }"
                   >
-                    <div class="flex items-center gap-4">
-                      <div class="w-12 h-12 rounded-2xl flex items-center justify-center ${
+                    <div class="flex items-center gap-3.5">
+                      <div class="w-11 h-11 rounded-xl flex items-center justify-center ${
                         active ? 'bg-calmBlue-500 text-white' : 'bg-calmBlue-50 text-calmBlue-600'
                       }">
                         <i data-lucide="${m.icon}" class="w-6 h-6"></i>
                       </div>
                       <div>
-                        <p class="font-extrabold text-base text-kioskNavy">${m.title}</p>
+                        <p class="font-extrabold text-sm text-kioskNavy">${m.title}</p>
                         <p class="text-xs text-slate-500">${m.sub}</p>
                       </div>
                     </div>
@@ -1276,7 +1282,7 @@
 
             <button
               onclick="confirmPayment()"
-              class="kiosk-btn w-full h-14 rounded-full bg-calmRed-500 hover:bg-calmRed-600 text-white font-extrabold text-base shadow-md shadow-calmRed-500/20 flex items-center justify-center gap-2.5 shrink-0 mt-1"
+              class="kiosk-btn w-full h-14 rounded-full bg-calmRed-500 hover:bg-calmRed-600 text-white font-extrabold text-base shadow-md shadow-calmRed-500/20 flex items-center justify-center gap-2.5"
             >
               <i data-lucide="lock" class="w-5 h-5"></i>
               <span>Bayar Sekarang (RM ${srv.sampleAmount.toFixed(2)})</span>
@@ -1286,15 +1292,141 @@
       `;
     }
 
-    /* --- SCREEN 3B: PROCESSING --- */
-    function renderProcessingScreen() {
-      return `
-        <div class="animate-screen flex-1 flex flex-col items-center justify-center text-center px-4">
-          <div class="w-24 h-24 rounded-3xl bg-calmBlue-50 border border-calmBlue-100 text-calmBlue-500 flex items-center justify-center mb-5">
-            <i data-lucide="loader-2" class="w-12 h-12 animate-spin"></i>
+    /* --- SCREEN 3B: METHOD-SPECIFIC CASHLESS PAYMENT EXECUTION --- */
+    function renderPaymentStepScreen() {
+      const srv = state.selectedService;
+      const amountText = `RM ${srv.sampleAmount.toFixed(2)}`;
+      const method = state.paymentMethod;
+
+      if (method === 'qr') {
+        const qrSeed = `${srv.id}-${state.accountInput}-${srv.sampleAmount}`;
+        return `
+          <div class="animate-screen flex-1 flex items-center justify-center overflow-hidden">
+            <div class="w-full max-w-xl rounded-3xl bg-white border-2 border-[#C699A5] p-6 sm:p-7 shadow-md flex flex-col items-center text-center gap-4">
+              <div class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#F0E4ED] border border-[#DBB4C4] text-[#46323B] text-xs font-extrabold uppercase tracking-wider">
+                <i data-lucide="qr-code" class="w-4 h-4 text-[#C699A5]"></i>
+                <span>1. DuitNow QR</span>
+              </div>
+
+              <div>
+                <h2 class="font-display font-extrabold text-xl sm:text-2xl text-kioskNavy">Imbas Kod QR Bayaran</h2>
+                <p class="text-xs sm:text-sm text-[#946371] font-medium mt-1">
+                  Sila imbas kod QR di bawah menggunakan aplikasi Perbankan Internet atau e-Wallet anda
+                </p>
+              </div>
+
+              <div class="p-4 rounded-3xl bg-gradient-to-b from-[#F0E4ED]/60 to-[#EFCFE3]/40 border-2 border-[#E49CB4] shadow-xs flex flex-col items-center">
+                <div class="bg-white p-3 rounded-2xl border border-[#DBB4C4] shadow-2xs">
+                  ${generateReceiptQrSvg(qrSeed)}
+                </div>
+                <span class="mt-2.5 px-3 py-0.5 rounded-full bg-[#C699A5] text-white text-[11px] font-extrabold tracking-wide">
+                  DUITNOW QR • ${amountText}
+                </span>
+              </div>
+
+              <div class="w-full p-3.5 rounded-2xl bg-[#F0E4ED]/50 border border-[#EFCFE3] flex items-center justify-center gap-2.5 text-xs sm:text-sm font-bold text-[#46323B]">
+                <i data-lucide="loader-2" class="w-4 h-4 text-[#C699A5] animate-spin"></i>
+                <span>Menunggu imbasan & pengesahan bayaran...</span>
+              </div>
+
+              <button
+                onclick="finalizeTransaction()"
+                class="kiosk-btn w-full h-12 rounded-full bg-[#C699A5] hover:bg-[#B0808D] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs"
+              >
+                <span>Teruskan ke Resit Rasmi</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
           </div>
-          <h2 class="font-display font-extrabold text-2xl text-kioskNavy">Memproses Bayaran...</h2>
-          <p class="text-sm text-slate-500 mt-1.5">Sila tunggu sebentar, jangan tinggalkan skrin kiosk.</p>
+        `;
+      }
+
+      if (method === 'card') {
+        return `
+          <div class="animate-screen flex-1 flex items-center justify-center overflow-hidden">
+            <div class="w-full max-w-xl rounded-3xl bg-white border-2 border-[#C699A5] p-6 sm:p-8 shadow-md flex flex-col items-center text-center gap-5">
+              <div class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#F0E4ED] border border-[#DBB4C4] text-[#46323B] text-xs font-extrabold uppercase tracking-wider">
+                <i data-lucide="credit-card" class="w-4 h-4 text-[#C699A5]"></i>
+                <span>2. Kad Debit / Kredit</span>
+              </div>
+
+              <div class="relative flex items-center justify-center my-1">
+                <div class="w-28 h-28 rounded-full bg-[#EFCFE3]/45 animate-ping absolute"></div>
+                <div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-[#C699A5] to-[#9E6C7A] text-white flex items-center justify-center shadow-lg relative z-10">
+                  <i data-lucide="credit-card" class="w-12 h-12 stroke-[2]"></i>
+                </div>
+              </div>
+
+              <div>
+                <h2 class="font-display font-extrabold text-xl sm:text-2xl text-kioskNavy">
+                  Penerimaan Bayaran Kad Sedang Dilaksanakan
+                </h2>
+                <p class="text-xs sm:text-sm text-[#946371] font-medium mt-1.5 max-w-md mx-auto">
+                  Sila sentuh (PayWave) atau masukkan kad Debit / Kredit anda pada terminal pembaca kad di bawah skrin kiosk.
+                </p>
+              </div>
+
+              <div class="w-full p-4 rounded-2xl bg-[#F0E4ED]/60 border border-[#DBB4C4] flex items-center justify-between">
+                <div class="flex items-center gap-2.5 text-left">
+                  <i data-lucide="loader-2" class="w-5 h-5 text-[#C699A5] animate-spin shrink-0"></i>
+                  <div>
+                    <span class="text-xs font-extrabold text-[#46323B] block">Menyambung ke Terminal Kad...</span>
+                    <span class="text-[11px] text-[#946371]">MyDebit • Visa • Mastercard</span>
+                  </div>
+                </div>
+                <span class="font-display font-extrabold text-lg text-[#46323B]">${amountText}</span>
+              </div>
+
+              <button
+                onclick="finalizeTransaction()"
+                class="kiosk-btn w-full h-12 rounded-full bg-[#C699A5] hover:bg-[#B0808D] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs"
+              >
+                <span>Teruskan ke Resit Rasmi</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      // Default / 'wallet': e-Wallet confirmation screen
+      return `
+        <div class="animate-screen flex-1 flex items-center justify-center overflow-hidden">
+          <div class="w-full max-w-xl rounded-3xl bg-white border-2 border-[#C699A5] p-6 sm:p-8 shadow-md flex flex-col items-center text-center gap-5">
+            <div class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#F0E4ED] border border-[#DBB4C4] text-[#46323B] text-xs font-extrabold uppercase tracking-wider">
+              <i data-lucide="smartphone" class="w-4 h-4 text-[#C699A5]"></i>
+              <span>3. e-Wallet</span>
+            </div>
+
+            <div class="relative flex items-center justify-center my-1">
+              <div class="w-28 h-28 rounded-full bg-[#E49CB4]/30 animate-pulse absolute"></div>
+              <div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-[#E49CB4] to-[#C699A5] text-white flex items-center justify-center shadow-lg relative z-10">
+                <i data-lucide="smartphone" class="w-12 h-12 stroke-[2]"></i>
+              </div>
+            </div>
+
+            <div>
+              <h2 class="font-display font-extrabold text-xl sm:text-2xl text-kioskNavy">
+                Menunggu Pengesahan Dari e-Wallet
+              </h2>
+              <p class="text-xs sm:text-sm text-[#946371] font-medium mt-1.5 max-w-md mx-auto">
+                Sila sahkan permintaan bayaran berjumlah <strong>${amountText}</strong> pada aplikasi Touch 'n Go eWallet, GrabPay atau Boost anda.
+              </p>
+            </div>
+
+            <div class="w-full p-4 rounded-2xl bg-[#F0E4ED]/60 border border-[#DBB4C4] flex items-center justify-center gap-2.5 text-xs sm:text-sm font-extrabold text-[#46323B]">
+              <i data-lucide="loader-2" class="w-5 h-5 text-[#C699A5] animate-spin"></i>
+              <span>Menunggu pengesahan transaksi e-Wallet...</span>
+            </div>
+
+            <button
+              onclick="finalizeTransaction()"
+              class="kiosk-btn w-full h-12 rounded-full bg-[#C699A5] hover:bg-[#B0808D] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs"
+            >
+              <span>Teruskan ke Resit Rasmi</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
         </div>
       `;
     }
