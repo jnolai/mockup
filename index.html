@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>kioskEzpay - Kiosk Bayaran Perkhidmatan (Skrin 21 Inci)</title>
+
+  <!-- Pautan ke Fail CSS Luaran -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'sans-serif'],
+          },
+          colors: {
+            calmBlue: {
+              50: '#F0E4ED',
+              100: '#EFCFE3',
+              200: '#DBB4C4',
+              400: '#E49CB4',
+              500: '#C699A5',
+              600: '#B0808D',
+              700: '#946371',
+              800: '#754956',
+            },
+            calmRed: {
+              50: '#F0E4ED',
+              100: '#EFCFE3',
+              400: '#E49CB4',
+              500: '#E49CB4',
+              600: '#D1829D',
+              700: '#B56581',
+            },
+            paletteRosy: '#C699A5',
+            paletteAmaranth: '#E49CB4',
+            paletteFairy: '#DBB4C4',
+            paletteMimi: '#EFCFE3',
+            palettePale: '#F0E4ED',
+            kioskNavy: '#46323B',
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-gradient-to-br from-[#F0E4ED] via-[#EFCFE3] to-[#DBB4C4] font-sans antialiased text-[#46323B] selection:bg-[#C699A5] selection:text-white">
+
+  <!-- OUTER 21-INCH FULL-SCREEN KIOSK SHELL (100vw x 100vh, Zero Scroll) -->
+  <div class="kiosk-21-wrapper p-3 lg:p-4">
+    <div id="kiosk-device" class="w-full h-full bg-white rounded-[32px] border-[5px] border-kioskNavy shadow-[0_24px_60px_rgba(70,50,59,0.22)] flex flex-col overflow-hidden relative">
+
+      <!-- TOP HEADER BAR -->
+      <header class="px-6 lg:px-8 py-3 bg-white border-b border-[#F0E4ED] flex items-center justify-between gap-6 shrink-0 z-20">
+        <!-- Left: Brand Logo -->
+        <button onclick="goHome()" class="kiosk-btn flex items-center gap-3.5 text-left group shrink-0">
+          <div class="w-12 h-12 rounded-2xl bg-[#C699A5] flex items-center justify-center shadow-sm group-hover:bg-[#B0808D] transition-colors relative">
+            <i data-lucide="landmark" class="w-6 h-6 text-white stroke-[2.3]"></i>
+            <span class="w-3 h-3 rounded-full bg-[#E49CB4] border-2 border-white absolute -top-0.5 -right-0.5"></span>
+          </div>
+          <div>
+            <span class="font-display font-extrabold text-2xl lg:text-3xl tracking-tight text-[#46323B] leading-none block">
+              kiosk<span class="text-[#C699A5]">Ezpay</span>
+            </span>
+            <span class="text-[11px] font-bold uppercase tracking-widest text-[#946371] block mt-0.5">
+              Kiosk Layan Diri • Paparan 21"
+            </span>
+          </div>
+        </button>
+
+        <!-- Center: Integrated Search Bar -->
+        <div id="header-search-wrap" class="flex-1 max-w-xl flex items-center gap-2.5">
+          <div class="flex-1 h-12 rounded-full bg-[#F0E4ED]/60 border border-[#DBB4C4] px-5 flex items-center gap-2.5 focus-within:bg-white focus-within:border-[#C699A5] transition-colors">
+            <i data-lucide="search" class="w-4 h-4 text-[#946371] shrink-0"></i>
+            <input
+              id="kiosk-search-input"
+              type="text"
+              value=""
+              oninput="handleSearch(this.value)"
+              placeholder="Cari perkhidmatan, cukai, kompaun atau sewaan..."
+              class="w-full bg-transparent text-sm font-medium text-[#46323B] placeholder:text-[#946371]/70 focus:outline-none"
+            />
+            <button id="header-search-clear" onclick="clearSearch()" class="hidden text-[#946371] hover:text-[#46323B] p-1">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Back Button + Session Timer & Help Button -->
+        <div class="flex items-center gap-3 shrink-0">
+          <button
+            id="header-back-btn"
+            onclick="goBack()"
+            class="hidden kiosk-btn h-11 px-5 rounded-full bg-[#F0E4ED] hover:bg-[#EFCFE3] text-[#46323B] text-sm font-extrabold flex items-center gap-2 border border-[#DBB4C4]"
+          >
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Kembali</span>
+          </button>
+
+          <div class="hidden sm:flex flex-col items-end mr-1">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#946371]">Masa Sesi</span>
+            <span id="session-badge" class="text-sm font-extrabold text-[#46323B] tabular-nums">02:00</span>
+          </div>
+
+          <button
+            onclick="openHelpModal()"
+            class="kiosk-btn h-11 px-4 rounded-full bg-[#C699A5] hover:bg-[#B0808D] text-white flex items-center gap-2 shadow-sm shadow-[#C699A5]/30"
+            title="Bantuan & Info Sesi"
+          >
+            <i data-lucide="user" class="w-5 h-5 stroke-[2.2]"></i>
+            <span class="text-xs font-extrabold">Bantuan</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- MAIN 21-INCH CONTENT CANVAS -->
+      <main id="kiosk-main" class="flex-1 overflow-hidden px-6 lg:px-8 py-4 flex flex-col">
+        <!-- Screens rendered dynamically via JS -->
+      </main>
+
+      <!-- COMPACT FOOTER BAR -->
+      <footer class="px-6 py-2 bg-[#F0E4ED]/50 border-t border-[#EFCFE3] flex items-center justify-between shrink-0">
+        <span class="text-[11px] font-bold text-[#946371]">
+          Sentuh mana-mana kategori untuk memulakan transaksi tanpa tunai
+        </span>
+        <span class="text-[11px] font-extrabold tracking-widest text-[#946371]">
+          UMKB@DBKL • kioskEzpay
+        </span>
+      </footer>
+
+      <!-- HELP & KIOSK INFO MODAL -->
+      <div id="help-modal" class="hidden absolute inset-0 bg-kioskNavy/50 backdrop-blur-[2px] z-50 flex items-center justify-center p-6">
+        <div class="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-calmBlue-100 animate-screen">
+          <div class="flex items-center justify-between pb-3 border-b border-calmBlue-100">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-full bg-calmBlue-500 text-white flex items-center justify-center">
+                <i data-lucide="headphones" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="font-display font-extrabold text-lg text-slate-900">Bantuan kioskEzpay</h3>
+                <p class="text-xs text-slate-500 font-medium">Layanan Layan Diri 24 Jam</p>
+              </div>
+            </div>
+            <button onclick="closeHelpModal()" class="kiosk-btn w-9 h-9 rounded-full bg-calmBlue-50 hover:bg-calmBlue-100 flex items-center justify-center text-calmBlue-700">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <div class="py-4 space-y-3 text-xs text-slate-600">
+            <div class="p-4 rounded-2xl bg-calmBlue-50 border border-calmBlue-200/70 space-y-1.5">
+              <p class="font-extrabold text-calmBlue-800 text-sm">Panduan Pantas:</p>
+              <ol class="list-decimal list-inside space-y-1.5 text-slate-700">
+                <li>Pilih salah satu daripada <strong>6 Kategori Perkhidmatan</strong> di skrin utama.</li>
+                <li>Untuk <strong>3. Sewaan</strong>, pilih jenis sewaan melalui ikon berkaitan.</li>
+                <li>Masukkan No. Akaun / Rujukan atau tekan <strong>Isi Contoh</strong>.</li>
+                <li>Sahkan jumlah bayaran dan pilih <strong>DuitNow QR</strong> atau <strong>Kad</strong>.</li>
+              </ol>
+            </div>
+            <div class="p-4 rounded-2xl bg-kioskNavy text-white flex items-center justify-between">
+              <div>
+                <p class="text-[10px] uppercase tracking-wider text-calmBlue-200 font-bold">Talian Khidmat Pelanggan</p>
+                <p class="text-base font-extrabold">1-800-88-5252</p>
+              </div>
+              <div class="w-9 h-9 rounded-full bg-calmRed-500 flex items-center justify-center">
+                <i data-lucide="phone-call" class="w-4 h-4 text-white"></i>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onclick="closeHelpModal()"
+            class="kiosk-btn w-full h-12 rounded-full bg-calmBlue-500 hover:bg-calmBlue-600 text-white font-extrabold text-sm shadow-sm"
+          >
+            Tutup & Teruskan
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       1. DATA PERKHIDMATAN (Senarai 1-6 & Sub-Kategori Sewaan dengan Ikon)
+       ========================================================================== */
+    const SERVICES = [
+      {
+        id: 'cukai_taksiran',
+        num: '1',
+        shortTitle: 'Cukai Taksiran',
+        title: '1. Cukai Taksiran',
+        desc: 'Cukai pintu harta kediaman & komersial',
+        icon: 'building-2',
+        inputLabel: 'No. Akaun Cukai Taksiran',
+        placeholder: 'CT-2026-88410',
+        sampleAcc: 'CT-2026-88410',
+        sampleOwner: 'AHMAD BIN ISMAIL',
+        sampleDetail: 'Lot 42, Jalan Kenanga 3, Taman Maju',
+        sampleAmount: 245.50
+      },
+      {
+        id: 'kompaun',
+        num: '2',
+        shortTitle: 'Kompaun',
+        title: '2. Kompaun',
+        desc: 'Bayaran notis kompaun am & pelesenan',
+        icon: 'file-warning',
+        inputLabel: 'No. Notis Kompaun',
+        placeholder: 'KMP-904321',
+        sampleAcc: 'KMP-904321',
+        sampleOwner: 'SYARIKAT MAJU JAYA SDN BHD',
+        sampleDetail: 'Kesalahan Undang-Undang Kecil Pelesenan',
+        sampleAmount: 150.00
+      },
+      {
+        id: 'sewaan',
+        num: '3',
+        shortTitle: 'Sewaan',
+        title: '3. Sewaan',
+        desc: 'Rumah, Caj Perkhidmatan, Hartanah, Parkir & Pelbagai',
+        icon: 'key-round',
+        hasSubcategories: true,
+        subcategories: [
+          {
+            id: 'sewaan_rumah',
+            title: 'Sewaan Rumah',
+            fullTitle: 'Sewaan Rumah',
+            desc: 'Sewa bulanan perumahan awam / PPR',
+            icon: 'home',
+            inputLabel: 'No. Akaun Sewaan Rumah',
+            placeholder: 'SR-110294',
+            sampleAcc: 'SR-110294',
+            sampleOwner: 'SITI NORHALIZA BINTI YUSOF',
+            sampleDetail: 'Blok B-04-12, Pangsapuri Rakyat Harmoni',
+            sampleAmount: 180.00
+          },
+          {
+            id: 'sewaan_caj_perkhidmatan',
+            title: 'Sewaan/Caj Perkhidmatan',
+            fullTitle: 'Sewaan/Caj Perkhidmatan',
+            desc: 'Sewaan fasiliti & caj penyelenggaraan',
+            icon: 'wrench',
+            inputLabel: 'No. Akaun Sewaan / Caj Perkhidmatan',
+            placeholder: 'SCP-55320',
+            sampleAcc: 'SCP-55320',
+            sampleOwner: 'KOPERASI WARGA BERSATU',
+            sampleDetail: 'Caj Penyelenggaraan & Kebersihan Premis',
+            sampleAmount: 95.00
+          },
+          {
+            id: 'sewaan_hartanah',
+            title: 'Sewaan Hartanah',
+            fullTitle: 'Sewaan Hartanah',
+            desc: 'Sewaan gerai, pasar, medan selera & ruang niaga',
+            icon: 'store',
+            inputLabel: 'No. Akaun Sewaan Hartanah',
+            placeholder: 'SH-77812',
+            sampleAcc: 'SH-77812',
+            sampleOwner: 'RESTORAN SELERA DESA',
+            sampleDetail: 'Lot Gerai No. 08, Medan Selera Perbandaran',
+            sampleAmount: 350.00
+          },
+          {
+            id: 'sewaan_parkir',
+            title: 'Sewaan Parkir Awam/Perumahan',
+            fullTitle: 'Sewaan Parkir Awam/Perumahan',
+            desc: 'Pas parkir bulanan & petak khas perumahan',
+            icon: 'car',
+            inputLabel: 'No. Akaun Parkir / No. Plat',
+            placeholder: 'SP-33019',
+            sampleAcc: 'SP-33019',
+            sampleOwner: 'TAN WEI MING',
+            sampleDetail: 'Petak Khas Parkir Zon A (Bulanan)',
+            sampleAmount: 120.00
+          },
+          {
+            id: 'sewaan_pelbagai',
+            title: 'Sewaan Pelbagai',
+            fullTitle: 'Sewaan Pelbagai',
+            desc: 'Sewaan dewan serbaguna, peralatan & tapak sementara',
+            icon: 'layers',
+            inputLabel: 'No. Rujukan Sewaan Pelbagai',
+            placeholder: 'SPB-90124',
+            sampleAcc: 'SPB-90124',
+            sampleOwner: 'PERSATUAN PENDUDUK TAMAN INDAH',
+            sampleDetail: 'Sewaan Dewan Komuniti & Sistem Siaraya',
+            sampleAmount: 250.00
+          }
+        ]
+      },
+      {
+        id: 'bil_air_rumah',
+        num: '4',
+        shortTitle: 'Bil Air Rumah',
+        title: '4. Bil Air Rumah',
+        desc: 'Bayaran bil bekalan air domestik kediaman',
+        icon: 'droplets',
+        inputLabel: 'No. Akaun Bil Air Rumah',
+        placeholder: 'AIR-4409182',
+        sampleAcc: 'AIR-4409182',
+        sampleOwner: 'NURUL AIN BINTI ZULKIFLI',
+        sampleDetail: 'Bacaan Semasa: 1,420 m³ (Tempoh Okt - Nov)',
+        sampleAmount: 42.80
+      },
+      {
+        id: 'yuran_perkhidmatan',
+        num: '5',
+        shortTitle: 'Yuran Perkhidmatan Perumahan & Permis',
+        title: '5. Yuran Perkhidmatan Perumahan dan Permis',
+        desc: 'Yuran perkhidmatan kawasan perumahan & premis',
+        icon: 'shield-check',
+        inputLabel: 'No. Akaun Perumahan / Premis',
+        placeholder: 'YPP-66104',
+        sampleAcc: 'YPP-66104',
+        sampleOwner: 'KLINIK KELUARGA SEJAHTERA',
+        sampleDetail: 'No. 15G, Pusat Komersial Perdana',
+        sampleAmount: 165.00
+      },
+      {
+        id: 'kompaun_trafik',
+        num: '6',
+        shortTitle: 'Kompaun Trafik',
+        title: '6. Kompaun Trafik',
+        desc: 'Kompaun letak kereta & kesalahan lalu lintas',
+        icon: 'car-front',
+        inputLabel: 'No. Kompaun Trafik / No. Plat Kenderaan',
+        placeholder: 'VKA 8821',
+        sampleAcc: 'VKA 8821',
+        sampleOwner: 'KENDERAAN: VKA 8821 (Notis #TRF-7741)',
+        sampleDetail: 'Kesalahan: Tidak Mempamerkan Tiket Parkir',
+        sampleAmount: 30.00
+      }
+    ];
+
+    /* ==========================================================================
+       2. KIOSK APPLICATION STATE
+       ========================================================================== */
+    const state = {
+      screen: 'HOME',
+      searchQuery: '',
+      selectedCategory: null,
+      selectedService: null,
+      accountInput: '',
+      inputError: false,
+      paymentMethod: 'qr',
+      receiptData: null,
+      printState: 'idle',
+      inactivitySeconds: 120
+    };
+
+    /* ==========================================================================
+       3. NAVIGATION & INTERACTION HANDLERS
+       ========================================================================== */
+    function resetInactivity() {
+      state.inactivitySeconds = 120;
+      updateSessionBadge();
+    }
+
+    function updateSessionBadge() {
+      const m = String(Math.floor(state.inactivitySeconds / 60)).padStart(2, '0');
+      const s = String(state.inactivitySeconds % 60).padStart(2, '0');
+      const el = document.getElementById('session-badge');
+      if (el) el.textContent = `${m}:${s}`;
+    }
+
+    function handleSearch(val) {
+      resetInactivity();
+      state.searchQuery = val;
+      const clearBtn = document.getElementById('header-search-clear');
+      if (clearBtn) clearBtn.classList.toggle('hidden', !val);
+      renderHomeCategoriesGrid();
+    }
+
+    function clearSearch() {
+      resetInactivity();
+      state.searchQuery = '';
+      const inputEl = document.getElementById('kiosk-search-input');
+      if (inputEl) inputEl.value = '';
+      const clearBtn = document.getElementById('header-search-clear');
+      if (clearBtn) clearBtn.classList.add('hidden');
+      renderHomeCategoriesGrid();
+    }
+
+    function selectMainCategory(catId) {
+      resetInactivity();
+      const cat = SERVICES.find(s => s.id === catId);
+      if (!cat) return;
+
+      state.selectedCategory = cat;
+      if (cat.hasSubcategories) {
+        state.screen = 'SEWAAN_SUB';
+      } else {
+        state.selectedService = {
+          ...cat,
+          displayTitle: cat.title
+        };
+        state.accountInput = '';
+        state.inputError = false;
+        state.screen = 'LOOKUP';
+      }
+      renderScreen();
+    }
+
+    function selectSubCategory(subId) {
+      resetInactivity();
+      const sewaanCat = SERVICES.find(s => s.id === 'sewaan');
+      const sub = sewaanCat.subcategories.find(s => s.id === subId);
+      if (!sub) return;
+
+      state.selectedCategory = sewaanCat;
+      state.selectedService = {
+        ...sub,
+        displayTitle: sub.fullTitle
+      };
+      state.accountInput = '';
+      state.inputError = false;
+      state.screen = 'LOOKUP';
+      renderScreen();
+    }
+
+    function goHome() {
+      resetInactivity();
+      state.screen = 'HOME';
+      state.selectedCategory = null;
+      state.selectedService = null;
+      state.accountInput = '';
+      state.inputError = false;
+      state.printState = 'idle';
+      renderScreen();
+    }
+
+    function goBack() {
+      resetInactivity();
+      if (state.screen === 'SEWAAN_SUB') {
+        goHome();
+      } else if (state.screen === 'LOOKUP') {
+        if (state.selectedCategory && state.selectedCategory.id === 'sewaan') {
+          state.screen = 'SEWAAN_SUB';
+        } else {
+          goHome();
+        }
+        renderScreen();
+      } else if (state.screen === 'BILL_SUMMARY') {
+        state.screen = 'LOOKUP';
+        renderScreen();
+      } else if (state.screen === 'RECEIPT') {
+        goHome();
+      }
+    }
+
+    /* ==========================================================================
+       4. TOUCH KEYPAD & PAYMENT FLOW ACTIONS
+       ========================================================================== */
+    function pressKey(char) {
+      resetInactivity();
+      state.inputError = false;
+      if (state.accountInput.length < 20) {
+        state.accountInput += char;
+        updateInputDisplay();
+      }
+    }
+
+    function backspaceKey() {
+      resetInactivity();
+      state.inputError = false;
+      state.accountInput = state.accountInput.slice(0, -1);
+      updateInputDisplay();
+    }
+
+    function clearInput() {
+      resetInactivity();
+      state.inputError = false;
+      state.accountInput = '';
+      updateInputDisplay();
+    }
+
+    function fillSampleAccount() {
+      resetInactivity();
+      state.inputError = false;
+      if (state.selectedService) {
+        state.accountInput = state.selectedService.sampleAcc;
+        updateInputDisplay();
+      }
+    }
+
+    function updateInputDisplay() {
+      const el = document.getElementById('account-display');
+      const errEl = document.getElementById('input-error-msg');
+      if (el) {
+        el.textContent = state.accountInput || state.selectedService.placeholder;
+        el.className = state.accountInput
+          ? 'text-2xl lg:text-3xl font-extrabold tracking-wider text-kioskNavy font-mono'
+          : 'text-2xl lg:text-3xl font-bold tracking-wider text-slate-300 font-mono';
+      }
+      if (errEl) {
+        errEl.classList.toggle('hidden', !state.inputError);
+      }
+    }
+
+    function submitAccountLookup() {
+      resetInactivity();
+      if (!state.accountInput.trim()) {
+        state.inputError = true;
+        updateInputDisplay();
+        return;
+      }
+      state.screen = 'BILL_SUMMARY';
+      renderScreen();
+    }
+
+    function selectPaymentMethod(method) {
+      resetInactivity();
+      state.paymentMethod = method;
+      renderScreen();
+    }
+
+    function confirmPayment() {
+      resetInactivity();
+      state.screen = 'PROCESSING';
+      renderScreen();
+
+      setTimeout(() => {
+        const now = new Date();
+        const refNo = 'EZP-' + now.getFullYear() + '-' + Math.floor(100000 + Math.random() * 900000);
+        state.receiptData = {
+          receiptNo: refNo,
+          timestamp: now.toLocaleString('ms-MY', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          serviceName: state.selectedService.displayTitle,
+          accountNo: state.accountInput.toUpperCase(),
+          owner: state.selectedService.sampleOwner,
+          amount: state.selectedService.sampleAmount.toFixed(2),
+          method: state.paymentMethod
+        };
+        state.printState = 'idle';
+        state.screen = 'RECEIPT';
+        renderScreen();
+      }, 1300);
+    }
+
+    function triggerPrintReceipt() {
+      resetInactivity();
+      if (state.printState !== 'idle') return;
+      state.printState = 'printing';
+      renderScreen();
+
+      setTimeout(() => {
+        state.printState = 'done';
+        renderScreen();
+      }, 1300);
+    }
+
+    /* ==========================================================================
+       5. SCREEN RENDERERS (21-INCH WIDESCREEN SINGLE-VIEW LAYOUT)
+       ========================================================================== */
+    function renderScreen() {
+      const backBtn = document.getElementById('header-back-btn');
+      const searchWrap = document.getElementById('header-search-wrap');
+
+      if (state.screen === 'HOME') {
+        backBtn.classList.add('hidden');
+        searchWrap.classList.remove('hidden');
+      } else if (state.screen === 'PROCESSING') {
+        backBtn.classList.add('hidden');
+        searchWrap.classList.add('hidden');
+      } else {
+        backBtn.classList.remove('hidden');
+        searchWrap.classList.add('hidden');
+      }
+
+      const main = document.getElementById('kiosk-main');
+
+      if (state.screen === 'HOME') {
+        main.innerHTML = renderHomeScreen();
+        renderHomeCategoriesGrid();
+      } else if (state.screen === 'SEWAAN_SUB') {
+        main.innerHTML = renderSewaanSubScreen();
+      } else if (state.screen === 'LOOKUP') {
+        main.innerHTML = renderLookupScreen();
+      } else if (state.screen === 'BILL_SUMMARY') {
+        main.innerHTML = renderBillSummaryScreen();
+      } else if (state.screen === 'PROCESSING') {
+        main.innerHTML = renderProcessingScreen();
+      } else if (state.screen === 'RECEIPT') {
+        main.innerHTML = renderReceiptScreen();
+      }
+
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+
+    /* --- SCREEN 1: 21-INCH SINGLE-VIEW DASHBOARD --- */
+    function renderHomeScreen() {
+      return `
+        <div class="animate-screen flex-1 h-full grid grid-cols-12 gap-5 overflow-hidden">
+
+          <!-- LEFT COLUMN (4 cols): Hero Banner + Akses Pantas & Peringatan -->
+          <div class="col-span-12 lg:col-span-4 flex flex-col justify-between gap-4 h-full">
+
+            <!-- Rosy Brown Hero Banner -->
+            <div class="flex-1 rounded-3xl bg-gradient-to-br from-[#C699A5] via-[#B88694] to-[#9E6C7A] text-white p-6 relative overflow-hidden shadow-md flex flex-col justify-between">
+              <div class="absolute -right-10 -bottom-10 w-48 h-48 rounded-full bg-[#EFCFE3]/35 blur-2xl pointer-events-none"></div>
+              <div class="absolute -left-8 -top-8 w-36 h-36 rounded-full bg-[#F0E4ED]/30 blur-xl pointer-events-none"></div>
+
+              <div class="relative z-10 flex items-start justify-between gap-3">
+                <div>
+                  <span class="px-3 py-1 rounded-full bg-white/15 text-[#F0E4ED] text-xs font-bold tracking-wide inline-block">
+                    Bayaran Pantas & Tanpa Tunai
+                  </span>
+                  <h2 class="font-display font-extrabold text-2xl xl:text-3xl text-white leading-tight mt-3">
+                    Semak & Bayar Bil 24/7
+                  </h2>
+                  <p class="text-xs xl:text-sm text-[#F0E4ED]/90 mt-2 leading-relaxed">
+                    Sokongan DuitNow QR, Kad Debit/Kredit & e-Wallet dengan cetakan resit segera.
+                  </p>
+                </div>
+                <div class="w-16 h-16 xl:w-20 xl:h-20 rounded-2xl bg-[#EFCFE3]/30 backdrop-blur-xs flex items-center justify-center shadow-lg rotate-3 border border-[#F0E4ED]/50 shrink-0">
+                  <i data-lucide="qr-code" class="w-9 h-9 xl:w-11 xl:h-11 text-white stroke-[1.9]"></i>
+                </div>
+              </div>
+
+              <div class="relative z-10 pt-3">
+                <button
+                  onclick="selectMainCategory('cukai_taksiran')"
+                  class="kiosk-btn h-11 px-6 rounded-full bg-[#F0E4ED] hover:bg-white text-[#46323B] text-sm font-extrabold inline-flex items-center gap-2 shadow-sm"
+                >
+                  <span>Bayar Cukai Taksiran</span>
+                  <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Akses Pantas & Peringatan -->
+            <div class="flex flex-col gap-3 shrink-0">
+              <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-full bg-[#F0E4ED] border border-[#DBB4C4] flex items-center justify-center text-[#946371]">
+                  <i data-lucide="bell-ring" class="w-3.5 h-3.5"></i>
+                </div>
+                <h3 class="font-display font-extrabold text-sm xl:text-base text-kioskNavy">Akses Pantas & Peringatan</h3>
+              </div>
+
+              <!-- Card 1: Fairy Tale (#DBB4C4) -->
+              <div class="rounded-2xl bg-gradient-to-r from-[#DBB4C4] to-[#CFA2B5] text-[#46323B] p-4 flex items-center justify-between shadow-xs">
+                <div>
+                  <span class="font-display font-extrabold text-base leading-none block">Kompaun Trafik & Parkir</span>
+                  <span class="text-xs font-semibold text-[#5E434F] block mt-1">Semak menggunakan No. Plat Kenderaan</span>
+                </div>
+                <button
+                  onclick="selectMainCategory('kompaun_trafik')"
+                  class="kiosk-btn h-9 px-4 rounded-full bg-[#C699A5] hover:bg-[#B0808D] text-white text-xs font-extrabold shrink-0 shadow-2xs"
+                >
+                  Semak Sekarang
+                </button>
+              </div>
+
+              <!-- Card 2: Mimi Pink (#EFCFE3) -->
+              <div class="rounded-2xl bg-gradient-to-r from-[#EFCFE3] to-[#E5BCD6] text-[#46323B] p-4 flex items-center justify-between shadow-xs">
+                <div>
+                  <span class="font-display font-extrabold text-base leading-none block">Sewaan & Bil Air Rumah</span>
+                  <span class="text-xs font-semibold text-[#6E4F5E] block mt-1">5 kategori sewaan perumahan & premis</span>
+                </div>
+                <button
+                  onclick="selectMainCategory('sewaan')"
+                  class="kiosk-btn h-9 px-4 rounded-full bg-[#E49CB4] hover:bg-[#D1829D] text-white text-xs font-extrabold shrink-0 shadow-2xs"
+                >
+                  Pilih Sewaan
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN (8 cols): All 6 Service Categories Visible Simultaneously -->
+          <div class="col-span-12 lg:col-span-8 flex flex-col h-full bg-[#F0E4ED]/35 rounded-3xl p-5 border border-[#EFCFE3]">
+            <div class="flex items-center justify-between mb-3.5 shrink-0">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-[#C699A5] text-white flex items-center justify-center">
+                  <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h3 class="font-display font-extrabold text-base xl:text-lg text-kioskNavy leading-none">
+                    Kategori Perkhidmatan Utama
+                  </h3>
+                  <p class="text-xs text-[#946371] font-medium mt-0.5">
+                    Pilih satu daripada 6 perkhidmatan di bawah
+                  </p>
+                </div>
+              </div>
+              <span class="px-3 py-1 rounded-full bg-white border border-[#DBB4C4] text-xs font-extrabold text-[#46323B]">
+                6 Perkhidmatan Aktif
+              </span>
+            </div>
+
+            <!-- 6 Cards Container -->
+            <div id="home-categories-container" class="flex-1 flex flex-col overflow-hidden"></div>
+          </div>
+
+        </div>
+      `;
+    }
+
+    /* --- DYNAMIC 6-CARD GRID RENDERER --- */
+    function renderHomeCategoriesGrid() {
+      const container = document.getElementById('home-categories-container');
+      if (!container) return;
+
+      const q = state.searchQuery.trim().toLowerCase();
+
+      if (q) {
+        const matches = [];
+        SERVICES.forEach(srv => {
+          if (srv.title.toLowerCase().includes(q) || srv.desc.toLowerCase().includes(q)) {
+            matches.push({
+              type: 'main',
+              id: srv.id,
+              title: srv.title,
+              desc: srv.desc,
+              icon: srv.icon,
+              badge: srv.hasSubcategories ? '5 Sub-Menu' : `Kategori #${srv.num}`
+            });
+          }
+          if (srv.hasSubcategories) {
+            srv.subcategories.forEach(sub => {
+              if (sub.title.toLowerCase().includes(q) || sub.desc.toLowerCase().includes(q)) {
+                matches.push({
+                  type: 'sub',
+                  id: sub.id,
+                  title: sub.fullTitle,
+                  desc: sub.desc,
+                  icon: sub.icon,
+                  badge: 'Sub-Sewaan'
+                });
+              }
+            });
+          }
+        });
+
+        container.innerHTML = matches.length === 0 ? `
+          <div class="flex-1 rounded-2xl bg-white border border-[#DBB4C4] flex flex-col items-center justify-center text-center p-6">
+            <p class="text-sm text-[#46323B]">Tiada perkhidmatan sepadan dengan "<strong>${state.searchQuery}</strong>".</p>
+            <button onclick="clearSearch()" class="mt-3 px-5 py-2 rounded-full bg-[#C699A5] text-white text-xs font-extrabold">Papar Semua 6 Kategori</button>
+          </div>
+        ` : `
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto no-scrollbar pr-1">
+            ${matches.map(m => `
+              <button
+                onclick="${m.type === 'main' ? `selectMainCategory('${m.id}')` : `selectSubCategory('${m.id}')`}"
+                class="kiosk-btn p-4 rounded-2xl bg-[#E49CB4] hover:bg-[#D88CA6] text-white flex items-center justify-between gap-3 text-left shadow-xs"
+              >
+                <div class="flex items-center gap-3.5">
+                  <div class="w-12 h-12 rounded-2xl bg-white/25 flex items-center justify-center shrink-0">
+                    <i data-lucide="${m.icon}" class="w-6 h-6 text-white"></i>
+                  </div>
+                  <div>
+                    <p class="font-extrabold text-sm leading-tight">${m.title}</p>
+                    <p class="text-xs text-[#F0E4ED] mt-0.5 line-clamp-1">${m.desc}</p>
+                  </div>
+                </div>
+                <span class="px-3 py-1 rounded-full bg-white text-[#46323B] font-extrabold text-[11px] shrink-0">
+                  ${m.badge}
+                </span>
+              </button>
+            `).join('')}
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      // All 6 Services in a balanced 3-column x 2-row grid
+      container.innerHTML = `
+        <div class="flex-1 grid grid-cols-2 md:grid-cols-3 gap-4">
+          ${SERVICES.map(srv => `
+            <button
+              onclick="selectMainCategory('${srv.id}')"
+              class="kiosk-btn rounded-3xl bg-[#E49CB4] hover:bg-[#D88CA6] text-white p-5 xl:p-6 flex flex-col justify-between text-left shadow-sm shadow-[#E49CB4]/30 relative group"
+            >
+              <div class="w-full flex items-center justify-between">
+                <span class="w-8 h-8 rounded-full bg-white/25 text-white font-display font-extrabold text-sm flex items-center justify-center">
+                  ${srv.num}
+                </span>
+                ${srv.hasSubcategories ? `
+                  <span class="px-2.5 py-1 rounded-full bg-[#C699A5] text-white text-[10px] font-extrabold shadow-2xs">
+                    5 Sub-Kategori
+                  </span>
+                ` : `
+                  <i data-lucide="arrow-up-right" class="w-5 h-5 text-white/80 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"></i>
+                `}
+              </div>
+
+              <div class="my-2">
+                <div class="w-14 h-14 rounded-2xl bg-white/25 flex items-center justify-center mb-3.5">
+                  <i data-lucide="${srv.icon}" class="w-7 h-7 text-white stroke-[2.1]"></i>
+                </div>
+                <h4 class="font-display font-extrabold text-base xl:text-lg leading-snug text-white">
+                  ${srv.shortTitle}
+                </h4>
+                <p class="text-xs text-[#F0E4ED] mt-1.5 line-clamp-2 leading-snug">
+                  ${srv.desc}
+                </p>
+              </div>
+            </button>
+          `).join('')}
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    /* --- SCREEN 1B: SUB-MENU 3. SEWAAN --- */
+    function renderSewaanSubScreen() {
+      const sewaanCat = SERVICES.find(s => s.id === 'sewaan');
+
+      return `
+        <div class="animate-screen flex-1 h-full flex flex-col justify-between gap-4 overflow-hidden">
+          <div class="rounded-3xl bg-gradient-to-r from-kioskNavy to-calmBlue-700 text-white p-5 xl:p-6 shadow-md flex items-center justify-between shrink-0">
+            <div>
+              <span class="px-3 py-1 rounded-full bg-calmRed-500 text-white text-xs font-extrabold uppercase tracking-wider">
+                Kategori #3 • Perkhidmatan Sewaan
+              </span>
+              <h2 class="font-display font-extrabold text-2xl xl:text-3xl text-white mt-2">
+                3. Sewaan
+              </h2>
+              <p class="text-xs xl:text-sm text-calmBlue-100 mt-1">
+                Sila pilih satu daripada 5 kategori sewaan di bawah untuk meneruskan semakan bil:
+              </p>
+            </div>
+            <div class="w-16 h-16 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shrink-0">
+              <i data-lucide="key-round" class="w-8 h-8 text-white"></i>
+            </div>
+          </div>
+
+          <div class="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 overflow-hidden">
+            ${sewaanCat.subcategories.map(sub => `
+              <button
+                onclick="selectSubCategory('${sub.id}')"
+                class="kiosk-btn p-5 rounded-3xl bg-white hover:bg-calmBlue-50 border-2 border-calmBlue-100 hover:border-calmBlue-500 shadow-xs flex flex-col justify-between text-left group"
+              >
+                <div class="w-full flex items-center justify-between">
+                  <div class="w-14 h-14 rounded-2xl bg-[#E49CB4] text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <i data-lucide="${sub.icon}" class="w-7 h-7 stroke-[2.2]"></i>
+                  </div>
+                  <div class="w-10 h-10 rounded-full bg-calmBlue-50 group-hover:bg-calmBlue-500 group-hover:text-white text-calmBlue-600 flex items-center justify-center transition-colors">
+                    <i data-lucide="chevron-right" class="w-5 h-5 stroke-[2.5]"></i>
+                  </div>
+                </div>
+                <div class="mt-4">
+                  <h3 class="font-display font-extrabold text-base xl:text-lg text-kioskNavy">
+                    ${sub.title}
+                  </h3>
+                  <p class="text-xs xl:text-sm text-slate-500 font-medium mt-1">
+                    ${sub.desc}
+                  </p>
+                </div>
+              </button>
+            `).join('')}
+          </div>
+
+          <div class="flex justify-start shrink-0">
+            <button
+              onclick="goHome()"
+              class="kiosk-btn h-12 px-8 rounded-full bg-calmBlue-50 hover:bg-calmBlue-100 text-calmBlue-700 border border-calmBlue-200 font-extrabold text-sm flex items-center gap-2"
+            >
+              <i data-lucide="arrow-left" class="w-4 h-4"></i>
+              <span>Kembali ke Menu Utama</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    /* --- SCREEN 2: ACCOUNT LOOKUP & TOUCH KEYPAD --- */
+    function renderLookupScreen() {
+      const srv = state.selectedService;
+      const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '0', 'PADAM'];
+
+      return `
+        <div class="animate-screen flex-1 h-full grid grid-cols-12 gap-6 overflow-hidden">
+          <div class="col-span-12 lg:col-span-6 flex flex-col justify-between gap-4 bg-[#F0E4ED]/35 rounded-3xl p-6 border border-[#EFCFE3]">
+            <div class="rounded-2xl bg-gradient-to-r from-kioskNavy to-calmBlue-700 text-white p-5 flex items-center justify-between gap-4">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-calmBlue-200">
+                  Perkhidmatan Dipilih
+                </span>
+                <h2 class="font-display font-extrabold text-xl xl:text-2xl text-white leading-snug mt-1">
+                  ${srv.displayTitle}
+                </h2>
+              </div>
+              <button
+                onclick="fillSampleAccount()"
+                class="kiosk-btn h-10 px-4 rounded-full bg-calmRed-500 hover:bg-calmRed-600 text-white text-xs font-extrabold shrink-0 shadow-xs"
+              >
+                Isi Contoh
+              </button>
+            </div>
+
+            <div class="flex-1 flex flex-col justify-center bg-white rounded-2xl p-6 border border-calmBlue-100 shadow-2xs">
+              <div class="flex items-center justify-between mb-2.5">
+                <label class="text-xs xl:text-sm font-extrabold uppercase tracking-wider text-calmBlue-700">
+                  ${srv.inputLabel}
+                </label>
+                ${state.accountInput ? `
+                  <button onclick="clearInput()" class="text-xs font-bold text-calmRed-600 hover:text-calmRed-700">Padam Semua</button>
+                ` : ''}
+              </div>
+
+              <div class="h-18 py-4 px-5 rounded-2xl bg-[#F0E4ED]/40 border-2 ${state.inputError ? 'border-calmRed-500 bg-calmRed-50' : 'border-calmBlue-500'} flex items-center justify-between">
+                <span id="account-display" class="${state.accountInput ? 'text-2xl lg:text-3xl font-extrabold tracking-wider text-kioskNavy font-mono' : 'text-2xl lg:text-3xl font-bold tracking-wider text-slate-300 font-mono'}">
+                  ${state.accountInput || srv.placeholder}
+                </span>
+                <span class="w-0.5 h-8 bg-calmBlue-500 animate-pulse"></span>
+              </div>
+
+              <p id="input-error-msg" class="${state.inputError ? '' : 'hidden'} text-xs font-bold text-calmRed-600 mt-2">
+                Sila masukkan No. Akaun / Rujukan atau tekan "Isi Contoh".
+              </p>
+            </div>
+
+            <button
+              onclick="submitAccountLookup()"
+              class="kiosk-btn w-full h-14 rounded-full bg-calmBlue-500 hover:bg-calmBlue-600 text-white font-extrabold text-base shadow-md shadow-calmBlue-500/20 flex items-center justify-center gap-2.5"
+            >
+              <span>Semak Bil & Teruskan</span>
+              <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <div class="col-span-12 lg:col-span-6 grid grid-cols-3 gap-3 h-full">
+            ${keys.map(k => {
+              if (k === 'PADAM') {
+                return `
+                  <button
+                    onclick="backspaceKey()"
+                    class="kiosk-btn rounded-2xl bg-calmRed-50 hover:bg-calmRed-100 border-2 border-calmRed-200/80 text-calmRed-600 font-extrabold text-sm xl:text-base flex items-center justify-center gap-2"
+                  >
+                    <i data-lucide="delete" class="w-5 h-5"></i>
+                    <span>PADAM</span>
+                  </button>
+                `;
+              }
+              return `
+                <button
+                  onclick="pressKey('${k}')"
+                  class="kiosk-btn rounded-2xl bg-white hover:bg-calmBlue-50 active:bg-calmBlue-500 active:text-white border-2 border-calmBlue-100 font-display font-extrabold text-2xl xl:text-3xl text-kioskNavy shadow-2xs"
+                >
+                  ${k}
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    /* --- SCREEN 3: BILL SUMMARY & PAYMENT METHOD --- */
+    function renderBillSummaryScreen() {
+      const srv = state.selectedService;
+      const methods = [
+        { id: 'qr', title: 'DuitNow QR', sub: 'Imbas kod QR perbankan internet / e-dompet', icon: 'qr-code' },
+        { id: 'card', title: 'Kad Debit / Kredit', sub: 'PayWave / MyDebit / Visa / Mastercard', icon: 'credit-card' },
+        { id: 'wallet', title: 'e-Wallet', sub: 'Touch \'n Go eWallet, GrabPay, Boost', icon: 'smartphone' }
+      ];
+
+      return `
+        <div class="animate-screen flex-1 h-full grid grid-cols-12 gap-6 overflow-hidden">
+          <div class="col-span-12 lg:col-span-6 rounded-3xl bg-white border-2 border-calmBlue-100 p-6 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-3 border-b border-calmBlue-100">
+                <span class="px-3.5 py-1 rounded-full bg-calmBlue-50 text-calmBlue-700 font-extrabold text-xs">
+                  ${srv.displayTitle}
+                </span>
+                <span class="px-3 py-1 rounded-full bg-calmRed-50 text-calmRed-600 text-xs font-extrabold">
+                  Status: Perlu Dibayar
+                </span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4 mt-4 text-sm">
+                <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/50">
+                  <span class="text-[11px] text-slate-500 font-bold uppercase block">No. Akaun / Rujukan</span>
+                  <span class="font-mono font-extrabold text-base text-kioskNavy mt-0.5 block">${state.accountInput.toUpperCase()}</span>
+                </div>
+                <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/50">
+                  <span class="text-[11px] text-slate-500 font-bold uppercase block">Tarikh Akhir Bayaran</span>
+                  <span class="font-extrabold text-base text-slate-800 mt-0.5 block">30 Nov 2026</span>
+                </div>
+              </div>
+
+              <div class="mt-4 space-y-3 text-sm">
+                <div>
+                  <span class="text-[11px] text-slate-400 font-bold uppercase block">Nama Pemilik / Pembayar</span>
+                  <span class="font-extrabold text-base text-kioskNavy">${srv.sampleOwner}</span>
+                </div>
+                <div>
+                  <span class="text-[11px] text-slate-400 font-bold uppercase block">Keterangan Bil</span>
+                  <span class="text-slate-600 font-medium">${srv.sampleDetail}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-gradient-to-r from-kioskNavy to-calmBlue-700 text-white flex items-center justify-between">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-calmBlue-200 block">Jumlah Perlu Dibayar</span>
+                <span class="text-xs text-calmBlue-100">Termasuk caj perkhidmatan</span>
+              </div>
+              <span class="font-display font-extrabold text-3xl xl:text-4xl text-white">
+                RM ${srv.sampleAmount.toFixed(2)}
+              </span>
+            </div>
+          </div>
+
+          <div class="col-span-12 lg:col-span-6 flex flex-col justify-between gap-4 bg-[#F0E4ED]/35 rounded-3xl p-6 border border-[#EFCFE3]">
+            <div class="space-y-3">
+              <h3 class="font-display font-extrabold text-lg text-kioskNavy">Pilih Kaedah Bayaran Tanpa Tunai:</h3>
+              ${methods.map(m => {
+                const active = state.paymentMethod === m.id;
+                return `
+                  <button
+                    onclick="selectPaymentMethod('${m.id}')"
+                    class="kiosk-btn w-full p-4 rounded-2xl border-2 flex items-center justify-between text-left ${
+                      active ? 'border-calmBlue-500 bg-white shadow-xs' : 'border-calmBlue-100 bg-white/70'
+                    }"
+                  >
+                    <div class="flex items-center gap-4">
+                      <div class="w-12 h-12 rounded-2xl flex items-center justify-center ${
+                        active ? 'bg-calmBlue-500 text-white' : 'bg-calmBlue-50 text-calmBlue-600'
+                      }">
+                        <i data-lucide="${m.icon}" class="w-6 h-6"></i>
+                      </div>
+                      <div>
+                        <p class="font-extrabold text-base text-kioskNavy">${m.title}</p>
+                        <p class="text-xs text-slate-500">${m.sub}</p>
+                      </div>
+                    </div>
+                    <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      active ? 'border-calmBlue-500 bg-calmBlue-500' : 'border-slate-300'
+                    }">
+                      ${active ? '<div class="w-2.5 h-2.5 rounded-full bg-white"></div>' : ''}
+                    </div>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+
+            <button
+              onclick="confirmPayment()"
+              class="kiosk-btn w-full h-14 rounded-full bg-calmRed-500 hover:bg-calmRed-600 text-white font-extrabold text-base shadow-md shadow-calmRed-500/20 flex items-center justify-center gap-2.5"
+            >
+              <i data-lucide="lock" class="w-5 h-5"></i>
+              <span>Bayar Sekarang (RM ${srv.sampleAmount.toFixed(2)})</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    /* --- SCREEN 3B: PROCESSING --- */
+    function renderProcessingScreen() {
+      return `
+        <div class="animate-screen flex-1 flex flex-col items-center justify-center text-center px-4">
+          <div class="w-24 h-24 rounded-3xl bg-calmBlue-50 border border-calmBlue-100 text-calmBlue-500 flex items-center justify-center mb-5">
+            <i data-lucide="loader-2" class="w-12 h-12 animate-spin"></i>
+          </div>
+          <h2 class="font-display font-extrabold text-2xl text-kioskNavy">Memproses Bayaran...</h2>
+          <p class="text-sm text-slate-500 mt-1.5">Sila tunggu sebentar, jangan tinggalkan skrin kiosk.</p>
+        </div>
+      `;
+    }
+
+    /* --- SCREEN 4: DIGITAL RECEIPT --- */
+    function renderReceiptScreen() {
+      const r = state.receiptData;
+      const methodLabels = {
+        qr: 'DuitNow QR',
+        card: 'Kad Debit / Kredit',
+        wallet: 'e-Wallet'
+      };
+
+      let printUi = '';
+      if (state.printState === 'idle') {
+        printUi = `
+          <button
+            onclick="triggerPrintReceipt()"
+            class="kiosk-btn flex-1 h-13 py-3.5 rounded-full bg-kioskNavy hover:bg-calmBlue-700 text-white font-extrabold text-sm flex items-center justify-center gap-2"
+          >
+            <i data-lucide="printer" class="w-5 h-5 text-calmBlue-200"></i>
+            <span>Cetak Resit Rasmi</span>
+          </button>
+        `;
+      } else if (state.printState === 'printing') {
+        printUi = `
+          <div class="flex-1 h-13 py-3.5 rounded-full bg-calmBlue-50 border border-calmBlue-200 text-calmBlue-700 font-extrabold text-sm flex items-center justify-center gap-2">
+            <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+            <span>Sedang Mencetak...</span>
+          </div>
+        `;
+      } else {
+        printUi = `
+          <div class="flex-1 py-3.5 px-4 rounded-full bg-calmBlue-50 border border-calmBlue-200 text-calmBlue-700 font-extrabold text-xs text-center flex items-center justify-center">
+            ✓ Resit Selesai Dicetak! Sila ambil di bawah.
+          </div>
+        `;
+      }
+
+      return `
+        <div class="animate-screen flex-1 flex items-center justify-center overflow-hidden">
+          <div class="w-full max-w-2xl animate-receipt rounded-3xl bg-white border-2 border-calmBlue-500 p-6 xl:p-8 shadow-md flex flex-col justify-between gap-5">
+            <div class="flex items-center justify-between pb-4 border-b border-dashed border-calmBlue-200">
+              <div class="flex items-center gap-3.5">
+                <div class="w-14 h-14 rounded-full bg-calmBlue-50 text-calmBlue-600 flex items-center justify-center">
+                  <i data-lucide="check-circle-2" class="w-8 h-8 stroke-[2.3]"></i>
+                </div>
+                <div>
+                  <span class="px-3 py-0.5 rounded-full bg-calmBlue-500 text-white text-[11px] font-extrabold">
+                    TRANSAKSI BERJAYA
+                  </span>
+                  <h2 class="font-display font-extrabold text-xl xl:text-2xl text-kioskNavy mt-1">Resit Rasmi Bayaran</h2>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-xs text-slate-400 block">Jumlah Dibayar</span>
+                <span class="font-display font-extrabold text-2xl xl:text-3xl text-calmRed-600">RM ${r.amount}</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/45">
+                <span class="text-xs text-slate-500 block">No. Resit Rasmi</span>
+                <span class="font-mono font-extrabold text-kioskNavy text-base">${r.receiptNo}</span>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/45">
+                <span class="text-xs text-slate-500 block">Tarikh & Masa</span>
+                <span class="font-bold text-slate-800 text-base">${r.timestamp}</span>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/45">
+                <span class="text-xs text-slate-500 block">Perkhidmatan</span>
+                <span class="font-extrabold text-calmBlue-700">${r.serviceName}</span>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/45">
+                <span class="text-xs text-slate-500 block">No. Akaun & Kaedah</span>
+                <span class="font-mono font-extrabold text-kioskNavy">${r.accountNo}</span> • <span class="font-bold text-slate-700">${methodLabels[r.method]}</span>
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 pt-1">
+              ${printUi}
+              <button
+                onclick="goHome()"
+                class="kiosk-btn flex-1 h-13 py-3.5 rounded-full bg-calmBlue-500 hover:bg-calmBlue-600 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-sm"
+              >
+                <i data-lucide="home" class="w-5 h-5"></i>
+                <span>Selesai & Menu Utama</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    /* ==========================================================================
+       6. MODAL & SESSION TIMER INITIALIZATION
+       ========================================================================== */
+    function openHelpModal() {
+      resetInactivity();
+      document.getElementById('help-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeHelpModal() {
+      resetInactivity();
+      document.getElementById('help-modal').classList.add('hidden');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderScreen();
+      updateSessionBadge();
+
+      setInterval(() => {
+        if (state.screen !== 'HOME') {
+          state.inactivitySeconds--;
+          if (state.inactivitySeconds <= 0) {
+            goHome();
+          } else {
+            updateSessionBadge();
+          }
+        }
+      }, 1000);
+
+      ['click', 'touchstart'].forEach(evt => {
+        document.body.addEventListener(evt, () => {
+          if (state.screen !== 'HOME') {
+            resetInactivity();
+          }
+        }, { passive: true });
+      });
+    });
+  </script>
+</body>
+</html>
