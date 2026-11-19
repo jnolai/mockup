@@ -2,7 +2,7 @@
 <html lang="ms">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>kioskEzpay - Kiosk Bayaran Perkhidmatan (Skrin 21 Inci)</title>
 
   <!-- Pautan ke Fail CSS Luaran -->
@@ -58,7 +58,7 @@
     };
   </script>
 </head>
-<body class="bg-gradient-to-br from-[#F0E4ED] via-[#EFCFE3] to-[#DBB4C4] font-sans antialiased text-[#46323B] selection:bg-[#C699A5] selection:text-white">
+<body oncontextmenu="return false;" onselectstart="return false;" ondragstart="return false;" class="kiosk-locked bg-gradient-to-br from-[#F0E4ED] via-[#EFCFE3] to-[#DBB4C4] font-sans antialiased text-[#46323B]">
 
   <!-- OUTER 21-INCH FULL-SCREEN KIOSK SHELL (100vw x 100vh, Zero Scroll) -->
   <div class="kiosk-21-wrapper p-3 lg:p-4">
@@ -190,10 +190,67 @@
         </div>
       </div>
 
+      <!-- SECURITY LOCK OVERLAY (Triggers if DevTools is forcefully opened) -->
+      <div id="devtools-lock-screen" class="hidden absolute inset-0 bg-[#46323B] text-white z-[9999] flex flex-col items-center justify-center text-center p-8">
+        <div class="w-20 h-20 rounded-3xl bg-[#C699A5]/20 border border-[#C699A5] flex items-center justify-center mb-5">
+          <i data-lucide="shield-alert" class="w-10 h-10 text-[#E49CB4]"></i>
+        </div>
+        <h2 class="font-display font-extrabold text-2xl lg:text-3xl">Akses Sistem Disekat</h2>
+        <p class="text-sm text-[#F0E4ED] max-w-md mt-2">
+          Mod pemeriksaan (Inspect / DevTools) tidak dibenarkan pada terminal layan diri <strong>kioskEzpay</strong>. Sila tutup tetingkap pemeriksaan untuk meneruskan.
+        </p>
+      </div>
+
     </div>
   </div>
 
   <script>
+    /* ==========================================================================
+       0. PERLINDUNGAN ANTI-INSPECT & KAWALAN KIOSK (KIOSK SECURITY LOCK)
+       ========================================================================== */
+    (function initKioskProtection() {
+      // 1. Sekat Klik Kanan (Right-Click Context Menu)
+      document.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        return false;
+      });
+
+      // 2. Sekat Kekunci Pintas DevTools, View Source & Save Page
+      document.addEventListener('keydown', function (e) {
+        const key = (e.key || '').toUpperCase();
+        // F12
+        if (e.keyCode === 123 || key === 'F12') {
+          e.preventDefault();
+          return false;
+        }
+        // Ctrl+Shift+I / J / C / K (Inspect, Console, Element Picker)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'J', 'C', 'K'].includes(key)) {
+          e.preventDefault();
+          return false;
+        }
+        // Ctrl+U (View Source), Ctrl+S (Save), Ctrl+P (Print)
+        if ((e.ctrlKey || e.metaKey) && ['U', 'S', 'P'].includes(key)) {
+          e.preventDefault();
+          return false;
+        }
+      });
+
+      // 3. Pengesanan Tetingkap DevTools Terbuka (Docked DevTools Detector)
+      const threshold = 160;
+      setInterval(function () {
+        const widthDiff = window.outerWidth - window.innerWidth > threshold;
+        const heightDiff = window.outerHeight - window.innerHeight > threshold;
+        const lockEl = document.getElementById('devtools-lock-screen');
+        if (lockEl) {
+          if (widthDiff || heightDiff) {
+            lockEl.classList.remove('hidden');
+          } else {
+            lockEl.classList.add('hidden');
+          }
+        }
+      }, 800);
+    })();
+
     /* ==========================================================================
        1. DATA PERKHIDMATAN (Senarai 1-6 & Sub-Kategori Sewaan dengan Ikon)
        ========================================================================== */
@@ -1084,7 +1141,50 @@
       `;
     }
 
-    /* --- SCREEN 4: DIGITAL RECEIPT --- */
+    /* --- HELPER: CRISP VECTOR QR CODE SVG FOR E-RECEIPT --- */
+    function generateReceiptQrSvg(receiptNo) {
+      // Deterministic pattern seeded by receipt number
+      let seed = 0;
+      for (let i = 0; i < receiptNo.length; i++) {
+        seed = (seed * 31 + receiptNo.charCodeAt(i)) % 997;
+      }
+      const size = 21;
+      let modules = '';
+
+      const isFinder = (r, c) =>
+        (r < 7 && c < 7) ||
+        (r < 7 && c >= size - 7) ||
+        (r >= size - 7 && c < 7);
+
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          if (isFinder(r, c)) continue;
+          const val = (r * 17 + c * 29 + seed) % 7;
+          if (val === 0 || val === 2 || val === 5) {
+            modules += `<rect x="${c}" y="${r}" width="1" height="1" rx="0.2" fill="#46323B"/>`;
+          }
+        }
+      }
+
+      const finder = (x, y) => `
+        <g transform="translate(${x},${y})">
+          <rect x="0" y="0" width="7" height="7" rx="1.4" fill="none" stroke="#46323B" stroke-width="1.15"/>
+          <rect x="2" y="2" width="3" height="3" rx="0.6" fill="#C699A5"/>
+        </g>
+      `;
+
+      return `
+        <svg viewBox="-1 -1 23 23" class="w-28 h-28 xl:w-32 xl:h-32" xmlns="http://www.w3.org/2000/svg">
+          <rect x="-1" y="-1" width="23" height="23" rx="2" fill="#FFFFFF"/>
+          ${finder(0, 0)}
+          ${finder(14, 0)}
+          ${finder(0, 14)}
+          ${modules}
+        </svg>
+      `;
+    }
+
+    /* --- SCREEN 4: DIGITAL RECEIPT WITH SCANNABLE E-RECEIPT QR CODE --- */
     function renderReceiptScreen() {
       const r = state.receiptData;
       const methodLabels = {
@@ -1121,10 +1221,11 @@
 
       return `
         <div class="animate-screen flex-1 flex items-center justify-center overflow-hidden">
-          <div class="w-full max-w-2xl animate-receipt rounded-3xl bg-white border-2 border-calmBlue-500 p-6 xl:p-8 shadow-md flex flex-col justify-between gap-5">
-            <div class="flex items-center justify-between pb-4 border-b border-dashed border-calmBlue-200">
+          <div class="w-full max-w-4xl animate-receipt rounded-3xl bg-white border-2 border-calmBlue-500 p-6 xl:p-7 shadow-md flex flex-col justify-between gap-4">
+            <!-- Top Status & Amount Header -->
+            <div class="flex items-center justify-between pb-3.5 border-b border-dashed border-calmBlue-200">
               <div class="flex items-center gap-3.5">
-                <div class="w-14 h-14 rounded-full bg-calmBlue-50 text-calmBlue-600 flex items-center justify-center">
+                <div class="w-13 h-13 rounded-full bg-calmBlue-50 text-calmBlue-600 flex items-center justify-center">
                   <i data-lucide="check-circle-2" class="w-8 h-8 stroke-[2.3]"></i>
                 </div>
                 <div>
@@ -1140,25 +1241,45 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 text-sm">
-              <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/45">
-                <span class="text-xs text-slate-500 block">No. Resit Rasmi</span>
-                <span class="font-mono font-extrabold text-kioskNavy text-base">${r.receiptNo}</span>
+            <!-- Middle Split: Left Receipt Details (8 cols) + Right QR Code Scan Box (4 cols) -->
+            <div class="grid grid-cols-12 gap-4 items-stretch">
+              <div class="col-span-12 md:col-span-8 grid grid-cols-2 gap-3 text-sm">
+                <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/45 flex flex-col justify-center">
+                  <span class="text-xs text-slate-500 block">No. Resit Rasmi</span>
+                  <span class="font-mono font-extrabold text-kioskNavy text-base mt-0.5">${r.receiptNo}</span>
+                </div>
+                <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/45 flex flex-col justify-center">
+                  <span class="text-xs text-slate-500 block">Tarikh & Masa</span>
+                  <span class="font-bold text-slate-800 text-base mt-0.5">${r.timestamp}</span>
+                </div>
+                <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/45 flex flex-col justify-center">
+                  <span class="text-xs text-slate-500 block">Perkhidmatan</span>
+                  <span class="font-extrabold text-calmBlue-700 mt-0.5">${r.serviceName}</span>
+                </div>
+                <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/45 flex flex-col justify-center">
+                  <span class="text-xs text-slate-500 block">No. Akaun & Kaedah</span>
+                  <div class="mt-0.5">
+                    <span class="font-mono font-extrabold text-kioskNavy">${r.accountNo}</span> • <span class="font-bold text-slate-700">${methodLabels[r.method]}</span>
+                  </div>
+                </div>
               </div>
-              <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/45">
-                <span class="text-xs text-slate-500 block">Tarikh & Masa</span>
-                <span class="font-bold text-slate-800 text-base">${r.timestamp}</span>
-              </div>
-              <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/45">
-                <span class="text-xs text-slate-500 block">Perkhidmatan</span>
-                <span class="font-extrabold text-calmBlue-700">${r.serviceName}</span>
-              </div>
-              <div class="p-3.5 rounded-2xl bg-[#F0E4ED]/45">
-                <span class="text-xs text-slate-500 block">No. Akaun & Kaedah</span>
-                <span class="font-mono font-extrabold text-kioskNavy">${r.accountNo}</span> • <span class="font-bold text-slate-700">${methodLabels[r.method]}</span>
+
+              <!-- QR Code Card for Customer E-Receipt Download -->
+              <div class="col-span-12 md:col-span-4 rounded-2xl bg-gradient-to-b from-[#F0E4ED]/65 to-[#EFCFE3]/45 border border-[#DBB4C4] p-3.5 flex flex-col items-center justify-center text-center">
+                <div class="bg-white p-2 rounded-2xl border border-[#DBB4C4] shadow-2xs">
+                  ${generateReceiptQrSvg(r.receiptNo)}
+                </div>
+                <div class="flex items-center gap-1.5 mt-2 text-kioskNavy">
+                  <i data-lucide="scan-line" class="w-3.5 h-3.5 text-[#946371]"></i>
+                  <span class="font-display font-extrabold text-xs">Imbas QR e-Resit</span>
+                </div>
+                <p class="text-[10px] text-[#946371] font-medium leading-tight mt-0.5">
+                  Imbas menggunakan telefon untuk simpan salinan resit rasmi
+                </p>
               </div>
             </div>
 
+            <!-- Bottom Action Buttons -->
             <div class="flex flex-col sm:flex-row gap-3 pt-1">
               ${printUi}
               <button
